@@ -2,12 +2,12 @@
 
 set -eo pipefail
 
-# PHX_DIR é o diretório onde o phx está instalado
-# Por padrão, assume que o script está sendo executado a partir do seu diretório
-export PHX_DIR="${PHX_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+# PHX_DIR is the directory where phx is installed
+# By default, it assumes that the script is being executed from its directory
+export PHX_DIR="${HOME}/.phx"
 export PHX_VERSIONS_DIR="${PHX_DIR}/versions"
 
-# Garante que o diretório de versões exista
+# Ensures that the versions directory exists
 mkdir -p "$PHX_VERSIONS_DIR"
 
 # Function to display error and exit
@@ -55,7 +55,7 @@ phx_help() {
     echo "  phx list"
 }
 
-# Function to install a PHP version (placeholder)
+# Function to install a PHP version
 phx_install() {
   local version="$1"
   if [ -z "$version" ]; then
@@ -64,7 +64,7 @@ phx_install() {
 
   local install_dir="${PHX_VERSIONS_DIR}/${version}"
 
-  # Endpoint CDN
+  # CDN endpoint
   local versions_url="https://cdn.jsdelivr.net/gh/NicolasTeles-Dev/phx-binaries@main/versions.json"
   # Fallback API
   local fallback_url="https://raw.githubusercontent.com/NicolasTeles-Dev/phx-binaries/main/versions.json"
@@ -223,7 +223,7 @@ phx_use() {
     _phx_error "PHP version '$version' is not installed."
   fi
 
-  # Create or update the 'current' symlink
+# Create or update the 'current' symlink
   ln -sf "$version_path" "$PHX_DIR/current"
   if [ $? -ne 0 ]; then
     _phx_error "Failed to create symlink to active PHP version."
@@ -248,9 +248,7 @@ phx_local() {
 
   echo "$version" > .php_version
   echo "Local PHP version set to $version in $(pwd)/.php_version"
-  echo "Add 'eval \"\
-$(phx init)\
-\"' to your shell startup file (e.g., ~/.bashrc or ~/.zshrc) to enable automatic local version switching."
+  echo "Add 'eval \"\$(./phx.sh init)\"' to your shell startup file (e.g., ~/.bashrc or ~/.zshrc) to enable automatic local version switching."
 }
 
 phx_current() {
@@ -277,6 +275,10 @@ phx_uninstall() {
   local current_version=""
   if [ -L "$PHX_DIR/current" ]; then
     current_version=$(basename "$(readlink "$PHX_DIR/current")")
+  fi
+
+  if [ -f ".php_version" ] && [ "$(cat ".php_version")" = "$version" ]; then
+    _phx_error "Cannot uninstall currently active PHP version (set by .php_version). Please change the version in .php_version or remove the file."
   fi
 
   if [ "$version" = "$current_version" ]; then
